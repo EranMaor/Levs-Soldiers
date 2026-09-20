@@ -27,7 +27,7 @@ class Channel:
                 drifted_x.append(ind)
             drifted_x.append(ind)
         return(drifted_x)
-    def encode(self, X):
+    def simulate(self, X):
         DX = [self.drift(x) for x in X]
         Y=[]
         for strand in DX:
