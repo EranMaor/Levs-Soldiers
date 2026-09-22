@@ -49,17 +49,17 @@ CH1_P_S = 0.043
 
 
 
-def build_SUB(p_s=CH1_P_S):
+def build_SUB(p_s=CH1_P_S): #this is the substitution probablity matrix
     
     return [
-        [1.0 - p_s, p_s / 2.0, 0.0, p_s / 2.0],            # z = 0
-        [p_s / 5.0, 1.0 - p_s, p_s / 5.0, 3.0 * p_s / 5.0],  # z = 1
-        [0.0, p_s / 2.0, 1.0 - p_s, p_s / 2.0],            # z = 2
-        [p_s / 5.0, 3.0 * p_s / 5.0, p_s / 5.0, 1.0 - p_s],  # z = 3
+        [1.0 - p_s, p_s / 2.0, 0.0, p_s / 2.0],            
+        [p_s / 5.0, 1.0 - p_s, p_s / 5.0, 3.0 * p_s / 5.0],  
+        [0.0, p_s / 2.0, 1.0 - p_s, p_s / 2.0],            
+        [p_s / 5.0, 3.0 * p_s / 5.0, p_s / 5.0, 1.0 - p_s],  
     ]
 
 
-def build_TRANS(D, p_ins=CH1_P_INS, p_del=CH1_P_DEL):
+def build_TRANS(D, p_ins=CH1_P_INS, p_del=CH1_P_DEL): #transition matrix from drift
     
     ND = len(D)
     D_MIN, D_MAX = min(D), max(D)
@@ -83,7 +83,7 @@ def build_TRANS(D, p_ins=CH1_P_INS, p_del=CH1_P_DEL):
 
 
 def D_from_bounds(Dmin, Dmax):
-    #the drift alphabet covering exactly the reachable range [Dmin, Dmax]
+    #list of drift states we're allowing
     return list(range(int(Dmin), int(Dmax) + 1))
 
 
@@ -97,7 +97,7 @@ def default_D(Y, n, p_ins=CH1_P_INS, p_del=CH1_P_DEL, slack=1):
 
 #basic functions to be used later
 def norm(v):
-
+    #normalizes list of probablities so it sums to 1
     s = 0.0
     for x in v:
         s += x
@@ -107,7 +107,7 @@ def norm(v):
 
 
 def one_hot_in_D(D, value):
-    """1[d = value] as a length-|D| PMF, or None when value is not in D."""
+    #creates prob distribution where prob of one thing is 1 and rest is 0
     if value in D:
         out = [0.0] * len(D)
         out[D.index(value)] = 1.0
@@ -115,7 +115,7 @@ def one_hot_in_D(D, value):
     return None
 
 
-def emission(y, j0, j1, P_sub):
+def emission(y, j0, j1, P_sub): #prob of observed DNA bases between two drift positions
 
     if j0 > j1:
         return [1.0, 1.0, 1.0, 1.0]          
@@ -175,7 +175,6 @@ def chi_theta_to_x(MthetaChi, recipes_i, m):
 
 
 def theta_excluding(MxTheta, t, m):
-
     r = len(MxTheta)
     out = [1.0] * m
     for t0 in range(r):
@@ -195,7 +194,6 @@ def theta_all(MxTheta, m):
 
 
 def phi_to_dnext(y, i, F_i, MxPhi, D, P_sub, TRANS_local):
-
     ND = len(D)
     out = [0.0] * ND
     for a in range(ND):
@@ -213,7 +211,6 @@ def phi_to_dnext(y, i, F_i, MxPhi, D, P_sub, TRANS_local):
 
 
 def phi_to_dprev(y, i, B_next, MxPhi, D, P_sub, TRANS_local):
-
     ND = len(D)
     out = [0.0] * ND
     for a in range(ND):
@@ -230,7 +227,7 @@ def phi_to_dprev(y, i, B_next, MxPhi, D, P_sub, TRANS_local):
 
 
 #inbound
-def inbound(recipes, Y, D=None, *, P_sub=None, P_trans=None, m=4,
+def inbound(recipes, Y, D=None, *, P_sub=None, P_trans=None, m=4, #uses the onehot prob function since we know drift at start is 0 so forward message starts with that
             codebook=None, paper_line15=True):
     n = len(recipes)
     R = len(Y)
@@ -275,7 +272,7 @@ def inbound(recipes, Y, D=None, *, P_sub=None, P_trans=None, m=4,
     }
     return F, B, ctx
 
-def forward(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None,
+def forward(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None, #at each position uses current drift info to estimate the DNA base then convert this info to info about the symbol. and also combines info from other strands
             m=4, codebook=None):
 
     ctx = _resolve_ctx(ctx, D, P_sub, P_trans, m, codebook, recipes, Y)
@@ -296,7 +293,7 @@ def forward(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None,
             F[t][i + 1] = phi_to_dnext(Y[t], i, F[t][i], mphi, D, P_sub, P_trans)
     return F
 
-def backward(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None,
+def backward(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None, #same as forward except starts from end and also uses info from later observations.
              m=4, codebook=None):
     ctx = _resolve_ctx(ctx, D, P_sub, P_trans, m, codebook, recipes, Y)
     D, m, P_sub, P_trans = ctx["D"], ctx["m"], ctx["P_sub"], ctx["P_trans"]
@@ -319,7 +316,7 @@ def backward(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None,
 
 
 
-def outbound(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None,
+def outbound(recipes, Y, F, B, D=None, *, ctx=None, P_sub=None, P_trans=None, #at each c_i calcultes prob distribution for each symbol
              m=4, codebook=None):
 
     ctx = _resolve_ctx(ctx, D, P_sub, P_trans, m, codebook, recipes, Y)
