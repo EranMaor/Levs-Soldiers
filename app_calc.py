@@ -34,12 +34,6 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
             condprob *= p_sub[y_t[j], x]
         return condprob
 
-    def message_v_to_f(v_node, f_node, F):
-        return np.prod(np.array[[message_f_to_v(v_node, f) for f in F[~f_node]]])
-
-    def message_f_to_v(Sa, phi_prob, v_node, f_node, V):
-        return np.sum(np.array(phi_prob*np.prod(np.array(message_v_to_f))))
-
 
     # INBOUND CALC 
     # a_priori_probs is M_psi_theta
@@ -58,29 +52,29 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
             for x in range(4):
                 s=0
                 for d_i in range(Dmin, Dmax+1):
-                    prob_d_i = M_d_phi[t][i,d_i-Dmin]
+                    prob_di = M_d_phi[t][i,d_i-Dmin]
                     if prob_di == 0:
                         continue
                     for d_i1 in [d_i-1,d_i,d_i+1]:
-                        s+=prob_d_i * phi_prob(x, d_i, d_i1, Y[t], i)
+                        s+=prob_di * phi_prob(x, d_i, d_i1, Y[t], i)
                 M_x_chi[x,t]=s
         M_theta_chi =  THETA @ M_x_chi
         cum_belief = np.prod(M_theta_chi,axis=1)
-        cum_belief_mat = np.tile(cum_belief[:, None], (1, n))
+        cum_belief_mat = np.tile(cum_belief[:, None], (1, r))
         M_chi_theta = cum_belief_mat / M_theta_chi
-        M_x_phi = Theta.T @ M_chi_theta
+        M_x_phi = THETA.T @ M_chi_theta
 
         for t in range(r):
 
             for d_i1 in range(Dmin, Dmax+1):
                 s=0
-                for d_i in [d_i-1,d_i,d_i+1]:
-                    prob_d_i = M_d_phi[t][i,d_i-Dmin]
+                for d_i in [d_i1-1,d_i1,d_i1+1]:
+                    prob_di = M_d_phi[t][i,d_i-Dmin]
                     if prob_di == 0:
                         continue
                     for x in range(4):
                         prob_x = M_x_phi[x,t]
-                        s+=prob_d_i * phi_prob(x, d_i, d_i1, Y[t], i) * prob_x
+                        s+=prob_di * phi_prob(x, d_i, d_i1, Y[t], i) * prob_x
                 M_d_phi[t][i+1,d_i1-Dmin] = s
             M_d_phi[t][i+1,:] = M_d_phi[t][i+1,:] * (1/((M_d_phi[t][i+1,:]).sum))
 
@@ -90,22 +84,49 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
 
 
 
-    #BACKWARD CALC
-    M_d_phi = []
+    M_d_phi_back=[]
+    init_dprob = np.zeros((n+1,Dmax+1-Dmin))
     for t in range(r):
-        d_nprob = np.zeros((n+1,Dmax+1-Dmin))
-        n_prime_t = len(Y[t])
-        d_nprob[n, (n - n_prime_t) - Dmin] = 1.0 if Dmin <= (n - n_prime_t) <= Dmax else 0.0
-        M_d_phi.append(d_nprob)
+        M_d_phi_back.append(init_dprob.copy())
+        M_d_phi_back[t][n, len(Y[t])-n-Dmin] = 1
 
-    for i in range(n-1,0,-1):
+
+    for i in reversed(range(n)):
+        M_x_chi = np.zeros((4,r))
         for t in range(r):
-            pass
 
+            #for each x, sum over all di, and di1
+            for x in range(4):
+                s=0
+                for d_i1 in range(Dmin, Dmax+1):
+                    prob_di = M_d_phi_back[t][i,d_i1-Dmin]
+                    if prob_di == 0:
+                        continue
+                    for d_i in [d_i1-1,d_i1,d_i1+1]:
+                        s+=prob_di * phi_prob(x, d_i, d_i1, Y[t], i)
+                M_x_chi[x,t]=s
+        M_theta_chi =  THETA @ M_x_chi
+        cum_belief = np.prod(M_theta_chi,axis=1)
+        cum_belief_mat = np.tile(cum_belief[:, None], (1, r))
+        M_chi_theta = cum_belief_mat / M_theta_chi
+        M_x_phi = THETA.T @ M_chi_theta
+
+        for t in range(r):
+
+            for d_i in range(Dmin, Dmax+1):
+                s=0
+                for d_i1 in [d_i-1,d_i,d_i+1]:
+                    prob_di = M_d_phi_back[t][i+1,d_i1-Dmin]
+                    if prob_di == 0:
+                        continue
+                    for x in range(4):
+                        prob_x = M_x_phi[x,t]
+                        s+=prob_di * phi_prob(x, d_i, d_i1, Y[t], i) * prob_x
+                M_d_phi_back[t][i+1,d_i1-Dmin] = s
+            M_d_phi_back[t][i+1,:] = M_d_phi_back[t][i,:] * (1/((M_d_phi_back[t][i+1,:]).sum()))
 
     #OUTBOUND CALC
-    for i in range(n):
-        for t in range(r):
+
 
             
 
