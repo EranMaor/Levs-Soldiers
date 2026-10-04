@@ -82,6 +82,8 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
                         prob_x = M_x_phi[x,t]
                         s+=prob_d_i * phi_prob(x, d_i, d_i1, Y[t], i) * prob_x
                 M_d_phi[t][i+1,d_i1-Dmin] = s
+            M_d_phi[t][i+1,:] = M_d_phi[t][i+1,:] * (1/((M_d_phi[t][i+1,:]).sum))
+
 
         
         
