@@ -139,13 +139,7 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
 
             M_chi_theta =  THETA @ M_x_chi
 
-            M_theta_psi = THETA.T @ M_chi_theta
+            M_theta_psi = np.prod(M_chi_theta,axis=1)
     
             return M_theta_psi
-
-            
-
-
-
-
 
