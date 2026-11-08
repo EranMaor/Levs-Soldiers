@@ -1,0 +1,98 @@
+# Created by Octave 10.3.0, Thu Oct 22 18:52:25 2026 PDT <anshuldandekar@Anshuls-MacBook-Air.local>
+# name: T
+# type: matrix
+# rows: 5
+# columns: 3
+ 0.19786032040913901 0.37396566073099774 0.58047763506571448
+ 0.13148061434427896 0.24043599764506021 0.35581803321838379
+ 0.085233688354492188 0.14675633112589517 0.21052964528401694
+ 0.15906858444213867 0.28671733538309735 0.44571765263875324
+ 0.12297606468200684 0.26729297637939453 0.41803169250488281
+
+
+# name: B
+# type: matrix
+# rows: 5
+# columns: 3
+ 8.313751220703125 16.62750244140625 24.941253662109375
+ 4.770660400390625 9.54132080078125 14.311981201171875
+ 2.44903564453125 4.8980712890625 7.34710693359375
+ 8.313751220703125 16.62750244140625 24.941253662109375
+ 8.313751220703125 16.62750244140625 24.941253662109375
+
+
+# name: rl
+# type: matrix
+# rows: 1
+# columns: 3
+ 50 100 150
+
+
+# name: combos
+# type: cell
+# rows: 5
+# columns: 2
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 3
+w41
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 3
+w41
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 3
+w41
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 3
+w42
+
+
+# name: <cell-element>
+# type: sq_string
+# elements: 1
+# length: 3
+w21
+
+
+
+# name: <cell-element>
+# type: scalar
+128
+
+
+# name: <cell-element>
+# type: scalar
+96
+
+
+# name: <cell-element>
+# type: scalar
+64
+
+
+# name: <cell-element>
+# type: scalar
+128
+
+
+# name: <cell-element>
+# type: scalar
+128
+
+
+
+
+
