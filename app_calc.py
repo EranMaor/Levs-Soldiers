@@ -59,9 +59,9 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
                         s += (prob_di * phi_prob(x, d_i, d_i1, Y[t], i))
                 M_x_chi[x,t]=s
         M_chi_theta =  THETA @ M_x_chi
-        cum_belief = np.prod(M_chi_theta,axis=1)
-        cum_belief_mat = np.tile(cum_belief[:, None], (1, r))
-        M_theta_chi = cum_belief_mat / M_chi_theta
+        # Leave-one-out products avoid division by zero when a message is zero.
+        M_theta_chi = np.stack([np.prod(np.delete(M_chi_theta, t, axis=1), axis=1) * a_priori_probs[i]
+                        for t in range(r)], axis=1)
 
         M_x_phi = THETA.T @ M_theta_chi
 
@@ -70,6 +70,8 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
             for d_i1 in range(Dmin, Dmax+1):
                 s=0
                 for d_i in [d_i1-1,d_i1,d_i1+1]:
+                    if d_i < Dmin or d_i > Dmax:
+                        continue
                     prob_di = M_d_phi[t][i,d_i-Dmin]
                     if prob_di == 0:
                         continue
@@ -77,7 +79,9 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
                         prob_x = M_x_phi[x,t]
                         s += prob_di * phi_prob(x, d_i, d_i1, Y[t], i) * prob_x
                 M_d_phi[t][i+1,d_i1-Dmin] = s
-            M_d_phi[t][i+1,:] = M_d_phi[t][i+1,:] * (1/((M_d_phi[t][i+1,:]).sum))
+            total = M_d_phi[t][i+1,:].sum()
+            if total > 0:
+                M_d_phi[t][i+1,:] /= total
         
         
     # BACKWARD CALC
@@ -96,16 +100,17 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
             for x in range(4):
                 s=0
                 for d_i1 in range(Dmin, Dmax+1):
-                    prob_di = M_d_phi_back[t][i,d_i1-Dmin]
+                    prob_di = M_d_phi_back[t][i+1,d_i1-Dmin]
                     if prob_di == 0:
                         continue
                     for d_i in [d_i1-1,d_i1,d_i1+1]:
+                        if d_i < Dmin or d_i > Dmax:
+                            continue
                         s += prob_di * phi_prob(x, d_i, d_i1, Y[t], i)
                 M_x_chi[x,t]=s
         M_chi_theta =  THETA @ M_x_chi
-        cum_belief = np.prod(M_chi_theta,axis=1)
-        cum_belief_mat = np.tile(cum_belief[:, None], (1, r))
-        M_theta_chi = cum_belief_mat / M_chi_theta
+        M_theta_chi = np.stack([np.prod(np.delete(M_chi_theta, t, axis=1), axis=1) * a_priori_probs[i]
+                        for t in range(r)], axis=1)
         M_x_phi = THETA.T @ M_theta_chi
 
         for t in range(r):
@@ -113,33 +118,42 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
             for d_i in range(Dmin, Dmax+1):
                 s=0
                 for d_i1 in [d_i-1,d_i,d_i+1]:
+                    if d_i1 < Dmin or d_i1 > Dmax:
+                        continue
                     prob_di = M_d_phi_back[t][i+1,d_i1-Dmin]
                     if prob_di == 0:
                         continue
                     for x in range(4):
                         prob_x = M_x_phi[x,t]
                         s += prob_di * phi_prob(x, d_i, d_i1, Y[t], i) * prob_x
-                M_d_phi_back[t][i+1,d_i1-Dmin] = s
-            M_d_phi_back[t][i+1,:] = M_d_phi_back[t][i,:] * (1/((M_d_phi_back[t][i+1,:]).sum()))
+                M_d_phi_back[t][i,d_i-Dmin] = s
+            total = M_d_phi_back[t][i,:].sum()
+            if total > 0:
+                M_d_phi_back[t][i,:] /= total
 
     #OUTBOUND CALC
+    APP = []
     for i in range(n):
-            M_x_chi = np.zeros((4,r))
-            for t in range(r):
+        M_x_chi = np.zeros((4,r))
+        for t in range(r):
     
-                #for each x, sum over all di, and di1
-                for x in range(4):
-                    s=0
-                    for d_i in range(Dmin, Dmax+1):
-                        prob_di_forward = M_d_phi[t][i,d_i-Dmin]
-                        for d_i1 in [d_i-1,d_i,d_i+1]:
-                            prob_di_back = M_d_phi_back[t][i,d_i1-Dmin]
-                            s += (prob_di_forward * phi_prob(x, d_i, d_i1, Y[t], i) * prob_di_back)
-                    M_x_chi[x,t]=s
+            #for each x, sum over all di, and di1
+            for x in range(4):
+                s=0
+                for d_i in range(Dmin, Dmax+1):
+                    prob_di_forward = M_d_phi[t][i,d_i-Dmin]
+                    for d_i1 in [d_i-1,d_i,d_i+1]:
+                        if d_i1 < Dmin or d_i1 > Dmax:
+                            continue
+                        prob_di_back = M_d_phi_back[t][i+1,d_i1-Dmin]
+                        s += (prob_di_forward * phi_prob(x, d_i, d_i1, Y[t], i) * prob_di_back)
+                M_x_chi[x,t]=s
 
-            M_chi_theta =  THETA @ M_x_chi
+        M_chi_theta =  THETA @ M_x_chi
 
-            M_theta_psi = np.prod(M_chi_theta,axis=1)
+        M_theta_psi = np.prod(M_chi_theta,axis=1) * a_priori_probs[i]
+        total = M_theta_psi.sum()
+        APP.append(M_theta_psi / total if total > 0 else M_theta_psi)
     
-            return M_theta_psi
+    return np.array(APP)    
 
