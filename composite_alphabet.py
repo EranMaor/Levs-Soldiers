@@ -39,6 +39,22 @@ def create_alphabet(w):
 
     return np.array(Theta)
 
+
+def composite_encode(THETA, symbols, r, rng=None):
+    # Synthesis of r strands from composite symbols (paper Eq. 12).
+    # symbols : length-n list/array of row indices into THETA (0-based)
+    # returns : r x n array with entries in 0..3; each letter is drawn from that position's recipe
+    if rng is None:
+        rng = np.random.default_rng()
+    THETA = np.asarray(THETA, dtype=float)
+    symbols = np.asarray(symbols, dtype=int)
+    n = len(symbols)
+    cum = np.cumsum(THETA[symbols], axis=1)          # n x 4
+    U = rng.random((r, n))
+    X = (U > cum[:, 0]).astype(int) + (U > cum[:, 1]).astype(int) + (U > cum[:, 2]).astype(int)
+    return X
+
+
 # Debug print
 if __name__ == "__main__":
     for name in WEIGHTS:
