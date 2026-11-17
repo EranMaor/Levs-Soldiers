@@ -135,7 +135,7 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
 
         # product over all reads times the prior, in the log domain
         with np.errstate(divide='ignore'):
-            log_psi = np.log(M_chi_theta).sum(axis=1) + np.log(a_priori_probs[i])
+            log_psi = np.log(M_chi_theta).sum(axis=1)
         peak = log_psi.max()
         if np.isfinite(peak):
             M_theta_psi = np.exp(log_psi - peak)
