@@ -133,7 +133,7 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
                             + (phi_del[None, :] * backward_drift_down)[:, :, None])
         M_chi_theta = chi_to_theta(M_x_chi)
 
-        # product over all reads times the prior, in the log domain
+        # product over all reads only (extrinsic APP; prior is used inside forward/backward)
         with np.errstate(divide='ignore'):
             log_psi = np.log(M_chi_theta).sum(axis=1)
         peak = log_psi.max()
