@@ -99,6 +99,7 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
         M_x_phi = theta_to_x(chi_to_theta(M_x_chi), i)
 
         gain_stay, gain_ins, gain_del = gains(i, M_x_phi)
+        # Update forward probabilities incorporating stay, shift down (ins), and shift up (del) transitions
         M_d_phi[:, i + 1] = normalise(forward_drift * gain_stay
                                       + shift_down(forward_drift * gain_ins)
                                       + shift_up(forward_drift * gain_del))
@@ -117,11 +118,12 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
         M_x_phi = theta_to_x(chi_to_theta(M_x_chi), i)
 
         gain_stay, gain_ins, gain_del = gains(i, M_x_phi)
+        # Update backward probabilities recursively
         M_d_phi_back[:, i] = normalise(backward_drift * gain_stay
                                        + backward_drift_up * gain_ins
                                        + backward_drift_down * gain_del)
 
-    # OUTBOUND CALC
+    # Combine forward and backward probability estimates to compute final app
     APP = np.zeros((n, m))
     for i in range(n):
         forward_drift = M_d_phi[:, i]
@@ -133,7 +135,7 @@ def app_calc(Y, THETA, a_priori_probs, p_ins, p_del, Dmin, Dmax, p_sub=np.eye(4)
                             + (phi_del[None, :] * backward_drift_down)[:, :, None])
         M_chi_theta = chi_to_theta(M_x_chi)
 
-        # product over all reads only (extrinsic APP; prior is used inside forward/backward)
+        # Sum log probabilities across reads (extrinsic product excluding current read's prior influence)
         with np.errstate(divide='ignore'):
             log_psi = np.log(M_chi_theta).sum(axis=1)
         peak = log_psi.max()
